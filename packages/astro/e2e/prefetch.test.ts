@@ -103,6 +103,19 @@ test.describe('Prefetch (default)', () => {
 		expect(reqUrls).toContainEqual('/prefetch-tap');
 	});
 
+	test('data-astro-prefetch="tap" should prefetch on tap when clicking a nested child element', async ({
+		page,
+		astro,
+	}) => {
+		await page.goto(astro.resolveUrl('/'));
+		expect(reqUrls).not.toContainEqual('/prefetch-tap-nested');
+		await Promise.all([
+			page.waitForEvent('request'), // wait prefetch request
+			page.locator('#prefetch-tap-nested span').click(),
+		]);
+		expect(reqUrls).toContainEqual('/prefetch-tap-nested');
+	});
+
 	test('data-astro-prefetch="hover" should prefetch on hover', async ({ page, astro }) => {
 		await page.goto(astro.resolveUrl('/'));
 		await expectUrlNotPrefetched('/prefetch-hover', page);

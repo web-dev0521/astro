@@ -59,8 +59,9 @@ function initTapStrategy() {
 		document.addEventListener(
 			event,
 			(e) => {
-				if (elMatchesStrategy(e.target, 'tap')) {
-					prefetch(e.target.href, { ignoreSlowConnection: true });
+				const anchor = (e.target as Element).closest('a');
+				if (elMatchesStrategy(anchor, 'tap')) {
+					prefetch(anchor.href, { ignoreSlowConnection: true });
 				}
 			},
 			{ passive: true },
