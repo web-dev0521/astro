@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import type { Locales } from '../../../dist/types/public/config.js';
 import {
 	computeCurrentLocale,
 	computePreferredLocale,
@@ -76,6 +77,63 @@ describe('computePreferredLocale', () => {
 	it('returns undefined when no Accept-Language header', () => {
 		const req = new Request('http://example.com/');
 		assert.equal(computePreferredLocale(req, locales), undefined);
+	});
+
+	describe('regression: issue #16598 (first-match wins on object-form locales)', () => {
+		interface FirstMatchCase {
+			readonly name: string;
+			readonly locales: ReadonlyArray<string | { path: string; codes: string[] }>;
+			readonly accept: string;
+			readonly expected: string;
+		}
+
+		const buildRequest = (acceptLanguage: string): Request => {
+			return new Request('http://example.com/', {
+				headers: { 'Accept-Language': acceptLanguage },
+			});
+		};
+
+		const runCase = (testCase: FirstMatchCase): void => {
+			const request = buildRequest(testCase.accept);
+			const actual = computePreferredLocale(request, testCase.locales as Locales);
+			assert.equal(actual, testCase.expected, testCase.name);
+		};
+
+		const cases: FirstMatchCase[] = [
+			{
+				name: 'object-then-string: object code wins over later string',
+				locales: [{ path: 'us', codes: ['EN-US'] }, 'en-us'],
+				accept: 'en-us',
+				expected: 'EN-US',
+			},
+			{
+				name: 'object-then-object: first codes entry wins over normalize-equivalent later one',
+				locales: [
+					{ path: 'us', codes: ['EN'] },
+					{ path: 'gb', codes: ['en'] },
+				],
+				accept: 'en',
+				expected: 'EN',
+			},
+			{
+				name: 'object-with-multi-codes still resolves to the matched code (not the path)',
+				locales: [{ path: 'us', codes: ['xx', 'EN-US', 'yy'] }, 'en-us'],
+				accept: 'en-us',
+				expected: 'EN-US',
+			},
+		];
+
+		for (const testCase of cases) {
+			it(testCase.name, () => {
+				runCase(testCase);
+			});
+		}
+
+		it('falls through to undefined when no entry matches (sanity guard for early return)', () => {
+			const onlyObject: Locales = [{ path: 'us', codes: ['EN'] }];
+			const request = buildRequest('de');
+			assert.equal(computePreferredLocale(request, onlyObject), undefined);
+		});
 	});
 });
 
