@@ -51,7 +51,7 @@ describe('pushDirective', () => {
 
 	describe('regression: issue #16594', () => {
 		const directiveNameOf = (directive: CspDirective): string => {
-			const head = directive.split(/\s+/).filter(Boolean)[0];
+			const head = directive.split(/\s+/).find(Boolean);
 			return head ?? '';
 		};
 
