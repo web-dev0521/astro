@@ -83,35 +83,33 @@ function sortAndFilterLocales(browserLocaleList: BrowserLocale[], locales: Local
  * If multiple locales are present in the header, they are sorted by their quality value and the highest is selected as current locale.
  *
  */
-function findFirstMatchingLocale(locales: Locales, target: string): string | undefined {
-	const normalizedTarget = normalizeTheLocale(target);
-	for (const candidate of locales) {
-		if (typeof candidate === 'string') {
-			if (normalizeTheLocale(candidate) === normalizedTarget) {
-				return candidate;
-			}
-			continue;
-		}
-		for (const code of candidate.codes) {
-			if (normalizeTheLocale(code) === normalizedTarget) {
-				return code;
-			}
-		}
-	}
-	return undefined;
-}
-
 export function computePreferredLocale(request: Request, locales: Locales): string | undefined {
 	const acceptHeader = request.headers.get('Accept-Language');
-	if (!acceptHeader) {
-		return undefined;
+	let result: string | undefined = undefined;
+	if (acceptHeader) {
+		const browserLocaleList = sortAndFilterLocales(parseLocale(acceptHeader), locales);
+
+		const firstResult = browserLocaleList.at(0);
+		if (firstResult && firstResult.locale !== '*') {
+			outer: for (const currentLocale of locales) {
+				if (typeof currentLocale === 'string') {
+					if (normalizeTheLocale(currentLocale) === normalizeTheLocale(firstResult.locale)) {
+						result = currentLocale;
+						break;
+					}
+				} else {
+					for (const currentCode of currentLocale.codes) {
+						if (normalizeTheLocale(currentCode) === normalizeTheLocale(firstResult.locale)) {
+							result = currentCode;
+							break outer;
+						}
+					}
+				}
+			}
+		}
 	}
-	const browserLocaleList = sortAndFilterLocales(parseLocale(acceptHeader), locales);
-	const firstResult = browserLocaleList.at(0);
-	if (!firstResult || firstResult.locale === '*') {
-		return undefined;
-	}
-	return findFirstMatchingLocale(locales, firstResult.locale);
+
+	return result;
 }
 
 export function computePreferredLocaleList(request: Request, locales: Locales): string[] {
