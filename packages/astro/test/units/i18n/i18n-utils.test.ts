@@ -99,7 +99,7 @@ describe('computePreferredLocale', () => {
 	});
 
 	it('returns the matched code from a multi-code entry, not the path', () => {
-		const localesMulti: Locales = [{ path: 'us', codes: ['xx', 'EN-US', 'yy'] }, 'en-us'];
+		const localesMulti: Locales = [{ path: 'us', codes: ['en-gb', 'EN-US'] }, 'en-us'];
 		const req = new Request('http://example.com/', {
 			headers: { 'Accept-Language': 'en-us' },
 		});
