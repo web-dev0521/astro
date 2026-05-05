@@ -79,61 +79,31 @@ describe('computePreferredLocale', () => {
 		assert.equal(computePreferredLocale(req, locales), undefined);
 	});
 
-	describe('regression: issue #16598 (first-match wins on object-form locales)', () => {
-		interface FirstMatchCase {
-			readonly name: string;
-			readonly locales: ReadonlyArray<string | { path: string; codes: string[] }>;
-			readonly accept: string;
-			readonly expected: string;
-		}
-
-		const buildRequest = (acceptLanguage: string): Request => {
-			return new Request('http://example.com/', {
-				headers: { 'Accept-Language': acceptLanguage },
-			});
-		};
-
-		const runCase = (testCase: FirstMatchCase): void => {
-			const request = buildRequest(testCase.accept);
-			const actual = computePreferredLocale(request, testCase.locales as Locales);
-			assert.equal(actual, testCase.expected, testCase.name);
-		};
-
-		const cases: FirstMatchCase[] = [
-			{
-				name: 'object-then-string: object code wins over later string',
-				locales: [{ path: 'us', codes: ['EN-US'] }, 'en-us'],
-				accept: 'en-us',
-				expected: 'EN-US',
-			},
-			{
-				name: 'object-then-object: first codes entry wins over normalize-equivalent later one',
-				locales: [
-					{ path: 'us', codes: ['EN'] },
-					{ path: 'gb', codes: ['en'] },
-				],
-				accept: 'en',
-				expected: 'EN',
-			},
-			{
-				name: 'object-with-multi-codes still resolves to the matched code (not the path)',
-				locales: [{ path: 'us', codes: ['xx', 'EN-US', 'yy'] }, 'en-us'],
-				accept: 'en-us',
-				expected: 'EN-US',
-			},
-		];
-
-		for (const testCase of cases) {
-			it(testCase.name, () => {
-				runCase(testCase);
-			});
-		}
-
-		it('falls through to undefined when no entry matches (sanity guard for early return)', () => {
-			const onlyObject: Locales = [{ path: 'us', codes: ['EN'] }];
-			const request = buildRequest('de');
-			assert.equal(computePreferredLocale(request, onlyObject), undefined);
+	it('returns the first matching code when an object-form entry precedes a string entry', () => {
+		const localesMixed: Locales = [{ path: 'us', codes: ['EN-US'] }, 'en-us'];
+		const req = new Request('http://example.com/', {
+			headers: { 'Accept-Language': 'en-us' },
 		});
+		assert.equal(computePreferredLocale(req, localesMixed), 'EN-US');
+	});
+
+	it('returns the first matching code when two object-form entries normalize-equivalently', () => {
+		const localesObjects: Locales = [
+			{ path: 'us', codes: ['EN'] },
+			{ path: 'gb', codes: ['en'] },
+		];
+		const req = new Request('http://example.com/', {
+			headers: { 'Accept-Language': 'en' },
+		});
+		assert.equal(computePreferredLocale(req, localesObjects), 'EN');
+	});
+
+	it('returns the matched code from a multi-code entry, not the path', () => {
+		const localesMulti: Locales = [{ path: 'us', codes: ['xx', 'EN-US', 'yy'] }, 'en-us'];
+		const req = new Request('http://example.com/', {
+			headers: { 'Accept-Language': 'en-us' },
+		});
+		assert.equal(computePreferredLocale(req, localesMulti), 'EN-US');
 	});
 });
 
