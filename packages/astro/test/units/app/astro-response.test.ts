@@ -94,4 +94,12 @@ describe('Returning responses', () => {
 		assert.equal(response.status, 404);
 		assert.equal(html.includes('Custom 404'), true);
 	});
+
+	it('Sets responseSentSymbol on the Request after render (regression #16608)', async () => {
+		const request = new Request('http://example.com/not-found');
+		const response = await app.render(request);
+		const responseSentSymbol = Symbol.for('astro.responseSent');
+		assert.equal((request as any)[responseSentSymbol], true);
+		assert.equal((response as any)[responseSentSymbol], undefined);
+	});
 });

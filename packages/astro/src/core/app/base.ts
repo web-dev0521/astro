@@ -441,7 +441,7 @@ export abstract class BaseApp<P extends Pipeline = AppPipeline> {
 					},
 				},
 			);
-			this.#prepareResponse(response, { addCookieHeader });
+			this.#prepareResponse(request, response, { addCookieHeader });
 			return response;
 		}
 
@@ -600,11 +600,15 @@ export abstract class BaseApp<P extends Pipeline = AppPipeline> {
 			});
 		}
 
-		this.#prepareResponse(response, { addCookieHeader });
+		this.#prepareResponse(request, response, { addCookieHeader });
 		return response;
 	}
 
-	#prepareResponse(response: Response, { addCookieHeader }: { addCookieHeader: boolean }): void {
+	#prepareResponse(
+		request: Request,
+		response: Response,
+		{ addCookieHeader }: { addCookieHeader: boolean },
+	): void {
 		// We remove internally-used header before we send the response to the user agent.
 		for (const headerName of [
 			REROUTE_DIRECTIVE_HEADER,
@@ -624,7 +628,7 @@ export abstract class BaseApp<P extends Pipeline = AppPipeline> {
 		}
 
 		this.logger.flush();
-		Reflect.set(response, responseSentSymbol, true);
+		Reflect.set(request, responseSentSymbol, true);
 	}
 
 	setCookieHeaders(response: Response) {
@@ -686,7 +690,7 @@ export abstract class BaseApp<P extends Pipeline = AppPipeline> {
 					const override = { status, removeContentEncodingHeaders: true };
 
 					const newResponse = this.mergeResponses(response, originalResponse, override);
-					this.#prepareResponse(newResponse, resolvedRenderOptions);
+					this.#prepareResponse(request, newResponse, resolvedRenderOptions);
 					return newResponse;
 				}
 			}
@@ -707,7 +711,7 @@ export abstract class BaseApp<P extends Pipeline = AppPipeline> {
 				session = renderContext.session;
 				const response = await renderContext.render(mod);
 				const newResponse = this.mergeResponses(response, originalResponse);
-				this.#prepareResponse(newResponse, resolvedRenderOptions);
+				this.#prepareResponse(request, newResponse, resolvedRenderOptions);
 				return newResponse;
 			} catch {
 				// Middleware may be the cause of the error, so we try rendering 404/500.astro without it.
@@ -725,7 +729,7 @@ export abstract class BaseApp<P extends Pipeline = AppPipeline> {
 		}
 
 		const response = this.mergeResponses(new Response(null, { status }), originalResponse);
-		this.#prepareResponse(response, resolvedRenderOptions);
+		this.#prepareResponse(request, response, resolvedRenderOptions);
 		return response;
 	}
 
